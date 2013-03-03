@@ -1,6 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Parse where
+{-# LANGUAGE FlexibleContexts #-}
+module Parse2 where
 
 import Control.Applicative (Applicative, (<$>), (*>), (<*), (<*>), (<|>))
 import qualified Control.Applicative as A
@@ -9,6 +10,7 @@ import Control.Monad.Trans (lift)
 import Control.Monad.Identity (Identity)
 import Control.Monad (liftM)
 import qualified Text.Parsec as P
+import Text.Parsec.Text ()
 import Data.Char (isLower, isAlpha)
 import Data.Monoid ((<>))
 import Data.Text as T
@@ -16,7 +18,6 @@ import Data.Text.IO as T
 import Data.Text.Format as F
 import Data.Text.Lazy (toStrict)
 import Data.List as L
-import Debug.Trace (trace)
 
 import Untyped
 
@@ -26,8 +27,8 @@ data Command
     deriving (Show)
 
 printcmd :: Context -> Command -> Text
-printcmd ctx (Eval _ tm) = printtm ctx tm
-printcmd ctx (Bind _ t _) = t <> "/"
+printcmd ctx (Eval _ tm) = printtm ctx $ eval ctx tm
+printcmd _ (Bind _ t _) = t <> "/"
 
 newtype TermParser a = TermParser {
     runTermParser :: StateT Context (P.Parsec Text ()) a
@@ -60,10 +61,7 @@ example'' :: IO ()
 example'' = do
     let txt = do
         (cmds, ctx) <- example'
-        let pnt cmd = case cmd of
-                (Eval _ tm) -> printtm ctx $ eval ctx tm
-                (Bind _ _ _) -> printcmd ctx cmd
-        return $ T.unlines $ L.map pnt cmds
+        return $ T.unlines $ L.map (printcmd ctx) cmds
     either Prelude.print T.putStr txt
 
 testParser :: TermParser a -> String -> Either P.ParseError (a, Context)
@@ -80,12 +78,15 @@ string :: String -> TermParser String
 string = TermParser . lift . P.string
 
 lookAhead :: P.Parsec Text () a -> TermParser a
+-- lookAhead :: P.Parsec Text () a -> TermParser a
 lookAhead = TermParser . lift . P.lookAhead
 
 anyChar :: TermParser Char
+-- anyChar :: TermParser Char
 anyChar = TermParser . lift $ P.anyChar
 
 satisfy :: (Char -> Bool) -> TermParser Char
+-- satisfy :: (Char -> Bool) -> TermParser Char
 satisfy = TermParser . lift . P.satisfy
 
 try :: TermParser a -> TermParser a
