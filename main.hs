@@ -30,7 +30,7 @@ import Prelude hiding ((.), id)
 import System.IO (hFlush, stdout, isEOF)
 import System.Exit
 
-import Untyped
+import Stlc
 
 -- Inhibit with a Text error message, run under IO
 type MyWire = Wire Text IO

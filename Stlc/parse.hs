@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleContexts #-}
-module Untyped.Parse2 where
+module Stlc.Parse where
 
 import Control.Applicative (Applicative, (<$>), (*>), (<*), (<*>), (<|>))
 import qualified Control.Applicative as A
@@ -10,13 +10,13 @@ import Control.Monad.State (StateT(StateT), MonadState, runStateT, get, modify,
 import Control.Monad.Trans (lift)
 import qualified Text.Parsec as P
 import Text.Parsec.Text ()
-import Data.Char (isLower, isAlpha)
+import Data.Char (isAlpha, isLower, isUpper)
 import Data.Monoid ((<>))
 import Data.Text as T
 import Data.Text.IO as T
 import Data.List as L
 
-import Untyped.Interpret
+import Stlc.Interpret
 
 data Command
     = Eval Info Term
@@ -47,8 +47,8 @@ example :: Text
 example = T.unlines [
       "x/;"
     , "x;"
-    , "lambda x. x;"
-    , "(lambda x. x) (lambda x. x x);"
+    , "lambda x:Bool. x;"
+    , "(lambda x:Bool. lambda y:Bool. x) False True;"
     ]
 
 example' :: Either P.ParseError ([Command], Context)
@@ -109,15 +109,30 @@ binder :: TermParser Binding
 binder = char '/' *> return NameBind
 
 term :: TermParser Term
-term = abstraction <|> appTerm where
+term = bool <|> ifStmt <|> abstraction <|> appTerm where
+    bool = (string "True" *> (return $ TmTrue Info)) <|>
+           (string "False" *> (return $ TmFalse Info))
+    ifStmt = do
+        string "if" >> spaces
+        tmTest <- term
+        spaces >> string "then" >> spaces
+        tmB1 <- term
+        spaces >> string "else" >> spaces
+        tmB2 <- term
+        return $ TmIf Info tmTest tmB1 tmB2
     abstraction = do
         string "lambda" >> spaces
         identifier <- lowerIdentifier
+        -- spaces >> char ':' >> spaces
+        char ':'
+        varTy <- ty
         char '.' >> spaces
         ctx <- get
-        tm <- modify ((identifier, NameBind):) >> term
+        tm <- modify ((identifier, VarBind varTy):) >> term
+        ctx' <- get
+        let resultTy = typeof ctx' tm
         put ctx
-        return $ TmAbs Info identifier tm
+        return $ TmAbs Info identifier (TyArr varTy resultTy) tm
 
 -- | Apply one or more lambdas.
 appTerm :: TermParser Term
@@ -133,6 +148,17 @@ atomicTerm = parenTerm <|> identifierTerm where
         identifier <- lowerIdentifier
         ctx <- get
         return $ TmVar Info (name2index Info ctx identifier) (ctxlength ctx)
+
+ty :: TermParser Ty
+ty = tyBool <|> tyArr where
+    tyBool = string "Bool" *> return TyBool
+    tyArr = TyArr <$> ty <*> ((spaces >> string "->" >> spaces) *> ty)
+
+-- | A name beginning with a lower-case letter.
+upperIdentifier :: TermParser Text
+upperIdentifier = do
+    lookAhead $ P.try $ P.satisfy isUpper
+    pack <$> A.many (satisfy isAlpha)
 
 -- | A name beginning with a lower-case letter.
 lowerIdentifier :: TermParser Text
