@@ -22,6 +22,7 @@ executable tapl
                  safe == 0.3.*,
                  text >= 0.11,
                  text-format >= 0.3,
+                 time >= 1.4,
                  parsec >= 3.1,
                  netwire == 4.0.*,
                  mtl == 2.1.*

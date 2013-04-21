@@ -1,25 +1,22 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE FlexibleContexts #-}
-module Parse2 where
+module Untyped.Parse2 where
 
 import Control.Applicative (Applicative, (<$>), (*>), (<*), (<*>), (<|>))
 import qualified Control.Applicative as A
-import Control.Monad.State (StateT(StateT), MonadState, runStateT, get, modify, put)
+import Control.Monad.State (StateT(StateT), MonadState, runStateT, get, modify,
+    put)
 import Control.Monad.Trans (lift)
-import Control.Monad.Identity (Identity)
-import Control.Monad (liftM)
 import qualified Text.Parsec as P
 import Text.Parsec.Text ()
 import Data.Char (isLower, isAlpha)
 import Data.Monoid ((<>))
 import Data.Text as T
 import Data.Text.IO as T
-import Data.Text.Format as F
-import Data.Text.Lazy (toStrict)
 import Data.List as L
 
-import Untyped
+import Untyped.Interpret
 
 data Command
     = Eval Info Term
