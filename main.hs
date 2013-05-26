@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {- Main entry point for various interpreters from TAPL.
 -
 - <Talk about command line options>
@@ -20,6 +21,7 @@
 module Main where
 
 import Control.Concurrent (threadDelay)
+import Control.Exception (catch)
 import Control.Monad (void)
 import Control.Monad.Trans (liftIO)
 import Control.Wire
@@ -65,7 +67,7 @@ control whenInhibited whenProduced wire = void $ loop wire (deltaClockSession 10
         case mx of
             Left ex -> whenInhibited ex
             Right x -> whenProduced x
-        loop w session `catch` (\_ -> T.putStrLn "done!" >> return "done!")
+        loop w session `catch` (\(_ :: SomeException) -> T.putStrLn "done!" >> return "done!")
 
 main :: IO ()
 main = do
