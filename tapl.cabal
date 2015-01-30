@@ -26,4 +26,10 @@ executable tapl
 
 executable unify
   main-is: unify.hs
-  build-depends: base == 4.6.*
+  build-depends: base == 4.6.*,
+                 safe == 0.3.*,
+                 mtl == 2.1.*
+
+-- executable llvm
+--   main-is: llvm.hs
+--   build-depends: llvm >= 3
